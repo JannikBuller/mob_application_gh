@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:pedometer/pedometer.dart';
 
 void main() {
   runApp(const MyApp());
@@ -10,7 +11,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: 'Schrittzähler',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
@@ -31,7 +32,47 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   int _counter = 0;
+  int _dailyGoal = 50;
   int _selectedIndex = 0; // Hält den aktuellen Tab-Index
+
+  late Stream<StepCount> _stepCountStream;
+  late Stream<PedestrianStatus> _pedestrianStatusStream;
+
+
+  void onStepCount(StepCount event) {
+    setState(() {
+      _counter = event.steps;
+    });
+  }
+
+  void onStepCountError(error){
+    print('Step Count Error: $error');
+  }
+
+  Future<void> initPlatformState() async {
+    _stepCountStream = Pedometer.stepCountStream;
+    _pedestrianStatusStream = Pedometer.pedestrianStatusStream;
+
+    _stepCountStream.listen(onStepCount).onError(onStepCountError);
+    _pedestrianStatusStream.listen(onPedestrianStatusChanged).onError(onPedestrianStatusError);
+  }
+
+  @override 
+  void initState() {
+    super.initState();
+    initPlatformState();
+  }
+
+  double getProgress(){
+    return _counter / _dailyGoal;
+  }
+  void onPedestrianStatusChanged(PedestrianStatus event){
+    print('Pedestrian Status: ${event.status}');
+  }
+
+  void onPedestrianStatusError(error){
+    print('Pedestrain Status Error: $error');
+  }
 
   void _incrementCounter() {
     setState(() {
@@ -74,10 +115,48 @@ class _MyHomePageState extends State<MyHomePage> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
             const Text('Deine Schrittzahl heute: '),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
+            const SizedBox(height:20),
+
+            Stack(
+              alignment: Alignment.center,
+              children: [
+                SizedBox(
+                  height:200,
+                  width: 200,
+                  child: CircularProgressIndicator(
+                    value: getProgress(),
+                    backgroundColor: Colors.grey.shade300,
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.deepPurple),
+                    strokeWidth: 15,
+                  ),  
+                ),
+                Text(
+                  '$_counter Schritte',
+                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                    color: Colors.deepPurple,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
             ),
+            const SizedBox(height: 20),
+            Text(
+              '${(_counter / _dailyGoal * 100).toStringAsFixed(1)} % des Ziels erreicht!',
+              style: TextStyle(fontSize: 18, color: Colors.deepPurple),
+            ),/* Hier eine Lineare Progressbar
+            const SizedBox(height: 20),
+            LinearProgressIndicator(
+              value: getProgess(),
+              backgroundColor: Colors.grey.shade300,
+              valueColor: AlwaysStoppedAnimation<Color>(Colors.deepPurple),
+            ),*//*
+            const SizedBox(height: 20),
+
+            // Text mit dem Fortschritt
+            Text(
+              '${(_counter / _dailyGoal * 100).toStringAsFixed(1)}% des Ziels erreicht!',
+              style: TextStyle(fontSize: 18, color: Colors.deepPurple),
+            ),     */     
           ],
         ),
       ),
