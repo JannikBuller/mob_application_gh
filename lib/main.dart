@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:pedometer/pedometer.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:intl/intl.dart';
 
 void main() {
   runApp(const MyApp());
@@ -190,8 +192,31 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 }
 
-class SecondScreen extends StatelessWidget {
+class SecondScreen extends StatefulWidget {
   const SecondScreen({super.key});
+
+  @override
+  _SecondScreenState createState() => _SecondScreenState();
+}
+
+class _SecondScreenState extends State<SecondScreen> {
+  String _weight = '';
+  String _height = '';
+
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProfilData();
+  }
+
+  Future<void> _loadProfilData() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _weight = prefs.getString('weight') ?? 'Nicht gesetzt';
+      _height = prefs.getString('height') ?? 'Nicht gesetzt';
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -207,6 +232,28 @@ class SecondScreen extends StatelessWidget {
               'Willkommen auf deinem Profil!',
               style: TextStyle(fontSize: 24),
               textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 20),
+            Text(
+              'Gewicht: $_weight kg',
+              style: TextStyle(fontSize: 18, color: Colors.deepPurple),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              'Größe: $_height cm',
+              style: TextStyle(fontSize: 18, color: Colors.deepPurple),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const ProfilSettingsScreen(),
+                  ),
+                ).then((_) => _loadProfilData());
+              },
+              child: const Text('Profil bearbeiten'),
             ),
             ElevatedButton(
               onPressed: () {
@@ -227,6 +274,8 @@ class StatisticsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final DateTime today = DateTime.now();
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Statistik'),
@@ -234,10 +283,13 @@ class StatisticsScreen extends StatelessWidget {
       body: ListView.builder(
         itemCount: 30, // Anzahl der Listenelemente, z. B. für 30 Tage
         itemBuilder: (context, index) {
+          DateTime currentDate = today.subtract(Duration(days: index));
+          String formattedDate = DateFormat('dd.MM.yyyy').format(currentDate);
+
           return ListTile(
-            leading: Icon(Icons.directions_walk, color: Colors.deepPurple),
-            title: Text('Tag ${index + 1}'),
-            subtitle: Text('Schritte: ${index * 1000 + 500}'), // Beispielwert
+            leading: const Icon(Icons.directions_walk, color: Colors.deepPurple),
+            title: Text(formattedDate),
+            subtitle: Text('Schritte: '), // Beispielwert
           );
         },
       ),
@@ -302,6 +354,94 @@ class SettingsScreen extends StatelessWidget {
                 Navigator.pop(context);
               },
               child: const Text('Zurück zur Startseite'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class ProfilSettingsScreen extends StatefulWidget {
+  const ProfilSettingsScreen({super.key});
+
+  @override
+  _ProfilSettingsScreenState createState() => _ProfilSettingsScreenState();
+}
+
+class _ProfilSettingsScreenState extends State<ProfilSettingsScreen> {
+  final TextEditingController _weightController = TextEditingController();
+  final TextEditingController _heightController = TextEditingController();
+
+
+  @override
+   void initState(){
+    super.initState();
+    _loadProfilData();
+   }
+
+  Future<void> _loadProfilData() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _weightController.text = prefs.getString('weight') ?? '';
+      _heightController.text = prefs.getString('height') ?? '';
+    });
+  }
+
+  Future <void> _saveProfilData() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('weight', _weightController.text);
+    await prefs.setString('height', _heightController.text);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Profil Einstellungen'),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: GestureDetector(
+                onTap: () {
+                  //Mögliche Bildauswahl ?
+                },
+                child: const CircleAvatar(
+                  radius: 50,
+                  backgroundImage: AssetImage('assets/default_profile.jpg'),
+                  child: const Icon(Icons.camera_alt, size: 40, color: Colors.white),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            TextField(
+              controller: _weightController,
+              decoration: InputDecoration(
+                labelText: 'Gewicht (kg)',
+                border: OutlineInputBorder(),
+              ),
+              keyboardType: TextInputType.number,
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              controller: _heightController,
+              decoration: InputDecoration(
+                labelText: 'Größe (cm)',
+                border: OutlineInputBorder(),
+              ),
+              keyboardType: TextInputType.number,
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: () async {
+                await _saveProfilData();
+                Navigator.pop(context);
+              },
+              child: const Text('Speichern'),
             ),
           ],
         ),
