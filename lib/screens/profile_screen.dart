@@ -9,8 +9,11 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
+  //Variablen
   String _weight = '';
   String _height = '';
+
+  //Textcontroller für die Eingabefelder
   final TextEditingController _weightController = TextEditingController();
   final TextEditingController _heightController = TextEditingController();
 
@@ -20,6 +23,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _loadProfileData();
   }
 
+  //Lädt Benutzerinformationen aus SharedPreferences
   Future<void> _loadProfileData() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
@@ -28,6 +32,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     });
   }
 
+  //Speichert Benutzerinformationen in SharedPreferences
   Future<void> _saveProfilData() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('weight', _weightController.text);
@@ -35,6 +40,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     await _loadProfileData();
   }
 
+  //Öffnet Dialog, wo Benutzer Größe & Gewicht eingibt
   void _showEditDialog() {
     _weightController.text = _weight == 'Nicht gesetzt' ? '' : _weight;
     _heightController.text = _height == 'Nicht gesetzt' ? '' : _height;
@@ -47,6 +53,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+
+              //Eingabefeld - Gewicht
               TextField(
                 controller: _weightController,
                 decoration: const InputDecoration(
@@ -56,6 +64,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 keyboardType: TextInputType.number,
               ),
               const SizedBox(height: 10),
+
+                //Eingabefeld - Größe
                 TextField(
                   controller: _heightController,
                   decoration: const InputDecoration(
@@ -67,10 +77,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ],
           ),
           actions: [
+
+            //Abbrechen Button
             TextButton(
               onPressed: () => Navigator.pop(context),
               child: const Text('Abbrechen')
             ),
+
+            //Speichern Button
             TextButton(
               onPressed: () async {
                 await _saveProfilData();
@@ -86,28 +100,35 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+
+    //Benutzeroberfläche Bildschirm
     return Scaffold(
       appBar: AppBar(title: const Text('Profil')),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
+
             const Text(
-              'Wollkommen auf deinem Profil!',
+              'Wilkommen auf deinem Profil!',
               style: TextStyle(fontSize: 24),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 20),
+            
             Text(
               'Gewicht: $_weight kg',
               style: const TextStyle(fontSize: 18, color: Colors.deepPurple),
             ),
             const SizedBox(height: 10),
+            
             Text(
               'Größe: $_height cm',
               style: const TextStyle(fontSize: 18, color: Colors.deepPurple),
             ),
             const SizedBox(height: 20),
+            
+            //Button - Profil bearbeiten
             ElevatedButton(
               onPressed: _showEditDialog, 
               child: const Text('Profil bearbeiten'),

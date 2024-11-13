@@ -13,21 +13,27 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+
+  //Variablen
   int _counter = 0;
   int _dailyGoal = 10000;
 
+  //Erhöhen der Schritte (manuell)
   void _incrementCounter() {
     setState(() {
       _counter++;
     });
   }
 
+  //Schritte-Fortschritt in Prozent
   double getProgess() {
     return _counter / _dailyGoal;
   }
 
   @override
   Widget build(BuildContext context) {
+
+    //Benutzeroberfläche Home Screen
     return Scaffold(
       appBar: AppBar(
         title: const Text('Schrittzähler')
@@ -36,11 +42,16 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
+
             const Text('Deine Schrittzahl heute:'),
             const SizedBox(height: 20),
+
+            //Fortschrittsanzeige
             Stack(
               alignment: Alignment.center,
               children: [
+
+                //Fortschrissbalken bzw. Kreis
                 SizedBox(
                   height: 200,
                   width: 200,
@@ -51,6 +62,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     strokeWidth: 15,
                   ),
                 ),
+
+                //Akutelle Schritte
                 Text(
                   '$_counter Schritte',
                   style: Theme.of(context).textTheme.headlineMedium?.copyWith(
@@ -61,6 +74,8 @@ class _HomeScreenState extends State<HomeScreen> {
               ],
             ),
             const SizedBox(height: 20),
+
+            //Fortschrittsanzeige in Prozent
             Text(
               '${(_counter / _dailyGoal * 100).toStringAsFixed(1)} % des Ziels erreicht.',
               style: const TextStyle(fontSize: 18, color: Colors.deepPurple),
@@ -68,11 +83,15 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
       ),
+
+      //Button zum Hinzufügen von Schritten
       floatingActionButton: FloatingActionButton(
         onPressed: _incrementCounter,
         tooltip: 'Increment',
         child: const Icon(Icons.add),
       ),
+
+      //Navigationsbar (Profil, Statistik, Einstellungen)
       bottomNavigationBar: BottomNavigationBar(
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.person_outline), label: 'Profil'),
