@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'profile_screen.dart';
 import 'statistics_screen.dart';
 import 'settings_screen.dart';
+import 'package:pedometer/pedometer.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -17,6 +18,28 @@ class _HomeScreenState extends State<HomeScreen> {
   //Variablen
   int _counter = 0;
   int _dailyGoal = 10000;
+  int _sensorSteps = 0;
+
+  //Stream für Schrittzähler
+  late Stream<StepCount> _stepCountStream;
+
+  @override
+  void initState() {
+    super.initState();
+    _initStepCounter();
+  }
+
+  void _initStepCounter() {
+    _stepCountStream = Pedometer.stepCountStream;
+
+    _stepCountStream.listen(
+    (StepCount event) {
+      setState(() {
+        _sensorSteps = event.steps;
+      });
+    },
+  );
+  }
 
   //Erhöhen der Schritte (manuell)
   void _incrementCounter() {
@@ -27,7 +50,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   //Schritte-Fortschritt in Prozent
   double getProgess() {
-    return _counter / _dailyGoal;
+    return (_counter + _sensorSteps) / _dailyGoal;
   }
 
   @override
@@ -65,7 +88,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
                 //Akutelle Schritte
                 Text(
-                  '$_counter Schritte',
+                  '${_counter + _sensorSteps} Schritte',
                   style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                     color: Colors.deepPurple,
                     fontWeight: FontWeight.bold,
