@@ -1,9 +1,12 @@
 // ignore_for_file: library_private_types_in_public_api, prefer_final_fields
 
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'profile_screen.dart';
 import 'statistics_screen.dart';
 import 'settings_screen.dart';
+import 'sign_in_screen.dart';
+
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -17,6 +20,18 @@ class _HomeScreenState extends State<HomeScreen> {
   //Variablen
   int _counter = 0;
   int _dailyGoal = 10000;
+  bool _isUserLoggedIn = false;
+  
+
+  
+
+  @override initState() {
+    super.initState();
+    
+    _checkUserStatus();
+  }
+
+  
 
   //Erhöhen der Schritte (manuell)
   void _incrementCounter() {
@@ -30,13 +45,51 @@ class _HomeScreenState extends State<HomeScreen> {
     return _counter / _dailyGoal;
   }
 
+  void _checkUserStatus() {
+    final user = FirebaseAuth.instance.currentUser;
+    setState(() {
+      _isUserLoggedIn = user != null;
+    });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _checkUserStatus();
+  }
+
   @override
   Widget build(BuildContext context) {
 
     //Benutzeroberfläche Home Screen
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Schrittzähler')
+        title: const Text('Schrittzähler'),
+        actions: [
+          if(_isUserLoggedIn)
+            Tooltip(
+              message: 'Abmelden',
+              child: IconButton(
+                icon: const Icon(Icons.exit_to_app),
+                onPressed: () async{
+                  await FirebaseAuth.instance.signOut();
+                  _checkUserStatus();
+              },
+              ),
+            ),
+          if(!_isUserLoggedIn)
+            IconButton(
+              icon: const Icon(Icons.login),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const SignInScreen()),
+                ).then((_) {
+                  _checkUserStatus();
+                });
+              },
+            ),
+        ],
       ),
       body: Center(
         child: Column(
@@ -99,6 +152,7 @@ class _HomeScreenState extends State<HomeScreen> {
           BottomNavigationBarItem(icon: Icon(Icons.settings), label: 'Einstellungen'),
         ],
         onTap: (index) {
+          if(_isUserLoggedIn) {
           if (index == 0) {
             Navigator.push(context, MaterialPageRoute(builder: (context) => const ProfileScreen()));
           } else if (index == 1) {
@@ -106,8 +160,27 @@ class _HomeScreenState extends State<HomeScreen> {
           } else if (index == 2) {
             Navigator.push(context, MaterialPageRoute(builder: (context) => const SettingsScreen()));
           }
-        },
-      ),
-    );
-  }
+        } else {
+          showDialog(
+            context: context,
+            builder:(BuildContext context) {
+              return AlertDialog(
+                title: const Text("Bitte Anmelden"),
+                content: const Text("Um auf diese Funktion zuzugreifen, bitte anmelden"),
+                actions: <Widget>[
+                  TextButton (
+                    onPressed: () {
+                      Navigator.pop(context);
+                    },
+                    child: const Text("Ok"),
+                  ),
+                ],
+              );
+            },
+          );
+        }
+      },
+    ),
+  );
+}
 }

@@ -37,6 +37,8 @@ android {
             signingConfig = signingConfigs.debug
         }
     }
+
+    apply plugin: 'com.google.gms.google-services'
 }
 
 flutter {

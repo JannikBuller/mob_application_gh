@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "484192560115",
+    "project_id": "schrittzaehler-app",
+    "storage_bucket": "schrittzaehler-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:484192560115:android:6d281f843e432f58cea886",
+        "android_client_info": {
+          "package_name": "com.example.mob_application_gh"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDzxC3C3-_FItemd9z1EWwyUxV7PJeMONY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
