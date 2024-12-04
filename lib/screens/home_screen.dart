@@ -70,6 +70,32 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
+  Future<bool> _logoutConfirmation(BuildContext context) async {
+    return await showDialog(context: context,
+          builder: (BuildContext context){
+            return AlertDialog(
+              title: const Text("Abmelden"),
+              content: const Text("Möchten Sie sich wirklich Abmelden?"),
+              actions: <Widget>[
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop(false);
+                  },
+                  child: const Text("Abbrechen"),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(context).pop(true);
+                  },
+                  child: const Text("Abmelden"),
+                ),
+              ],
+            );
+          },
+    ) ??
+    false;
+  }
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -90,8 +116,11 @@ class _HomeScreenState extends State<HomeScreen> {
               child: IconButton(
                 icon: const Icon(Icons.exit_to_app),
                 onPressed: () async{
+                  final confirmLogout = await _logoutConfirmation(context);
+                  if (confirmLogout) {
                   await FirebaseAuth.instance.signOut();
                   _checkUserStatus();
+                  }
               },
               ),
             ),
