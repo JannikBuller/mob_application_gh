@@ -6,7 +6,7 @@ import 'profile_screen.dart';
 import 'statistics_screen.dart';
 import 'settings_screen.dart';
 import 'sign_in_screen.dart';
-
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:pedometer/pedometer.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -22,30 +22,102 @@ class _HomeScreenState extends State<HomeScreen> {
   int _counter = 0;
   int _dailyGoal = 10000;
   bool _isUserLoggedIn = false;
-  
-
-  
+  int _sensorSteps = 0;
 
   @override initState() {
     super.initState();
-    
+    _loadStepsFromFirestore();
     _initStepCounter();
     _checkUserStatus();
   }
 
-  
-  int _sensorSteps = 0;
+void _loadStepsFromFirestore() async {
+  if(FirebaseAuth.instance.currentUser != null) {
+    String userId = FirebaseAuth.instance.currentUser!.uid;
 
+    DocumentReference userDoc = FirebaseFirestore.instance.collection('users').doc(userId);
+
+    DateTime now = DateTime.now();
+    String today = '${now.year}-${now.month}-${now.day}';
+
+    try {
+      DocumentSnapshot docSnapshot = await userDoc.get();
+      List<dynamic> stepsList = docSnapshot.exists ? (docSnapshot['steps'] ?? []) : [];
+      bool isNewDay = true;
+
+      for (var stepEntry in stepsList) {
+        if (stepEntry['date'] == today) {
+          setState(() {
+            _counter = stepEntry['stepCount'];
+          });
+          isNewDay = false;
+          break;
+        }
+      }
+    if (isNewDay) {
+      setState(() {
+        _counter = 0;
+        _sensorSteps = 0;
+      });
+      _saveStepsToFirestore();
+    }
+    } catch(e) {
+      print('Fehler beim Laden der Schritte: $e');
+    }
+  }
+}
+
+void _saveStepsToFirestore() async {
+  if (FirebaseAuth.instance.currentUser != null) {
+    String userId = FirebaseAuth.instance.currentUser!.uid;
+
+    
+    DocumentReference userDoc = FirebaseFirestore.instance.collection('users').doc(userId);
+    DateTime now = DateTime.now();
+    String today = '${now.year}-${now.month}-${now.day}'; 
+
+    try {
+      
+      DocumentSnapshot docSnapshot = await userDoc.get();
+      List<dynamic> stepsList = docSnapshot.exists ? (docSnapshot['steps'] ?? []) : [];
+
+      bool found = false;
+
+      
+      for (var stepEntry in stepsList) {
+        if (stepEntry['date'] == today) {
+          stepEntry['stepCount'] = (_counter + _sensorSteps);
+          found = true;
+          break;
+        }
+      }
+
+      if (!found) {
+        stepsList.add({
+          'date': today,
+          'stepCount': _counter + _sensorSteps,
+        });
+      }
+
+      
+      await userDoc.set({'steps': stepsList}, SetOptions(merge: true));
+    } catch (e) {
+      print('Fehler beim Speichern der Schritte: $e');
+    }
+  }
+}
+  
   //Stream für Schrittzähler
   late Stream<StepCount> _stepCountStream;
 
   void _initStepCounter() {
     _stepCountStream = Pedometer.stepCountStream;
-
+    
     _stepCountStream.listen(
     (StepCount event) {
       setState(() {
         _sensorSteps = event.steps;
+        _saveStepsToFirestore();
       });
     },
   );
@@ -55,6 +127,7 @@ class _HomeScreenState extends State<HomeScreen> {
   void _incrementCounter() {
     setState(() {
       _counter++;
+      _saveStepsToFirestore();
     });
   }
 
@@ -165,7 +238,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
                 //Akutelle Schritte
                 Text(
-                  '${_counter + _sensorSteps} Schritte',
+                  '${_counter + (_sensorSteps)} Schritte',
                   style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                     color: Colors.deepPurple,
                     fontWeight: FontWeight.bold,
@@ -177,7 +250,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
             //Fortschrittsanzeige in Prozent
             Text(
-              '${(_counter / _dailyGoal * 100).toStringAsFixed(1)} % des Ziels erreicht.',
+              '${((_counter + _sensorSteps )/ _dailyGoal * 100).toStringAsFixed(1)} % des Ziels erreicht.',
               style: const TextStyle(fontSize: 18, color: Colors.deepPurple),
             ),
           ],

@@ -1,3 +1,6 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -20,25 +23,38 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   void initState() {
     super.initState();
-    _loadProfileData();
+    _loadWeightAndHeight();
+
   }
 
-  //Lädt Benutzerinformationen aus SharedPreferences
-  Future<void> _loadProfileData() async {
-    final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _weight = prefs.getString('weight') ?? 'Nicht gesetzt';
-      _height = prefs.getString('height') ?? 'Nicht gesetzt';
-    });
-  }
+  Future<void> _saveWeightAndHeight(String weight, String height) async {
+  if(FirebaseAuth.instance.currentUser != null) {
+    String userId = FirebaseAuth.instance.currentUser!.uid;
 
-  //Speichert Benutzerinformationen in SharedPreferences
-  Future<void> _saveProfilData() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('weight', _weightController.text);
-    await prefs.setString('height', _heightController.text);
-    await _loadProfileData();
+    await FirebaseFirestore.instance.collection('users').doc(userId).set({
+      'weight': double.tryParse(weight) ?? 0.0,
+      'height': double.tryParse(height) ?? 0.0,
+    }, SetOptions(merge:true));
   }
+}
+
+  Future<void> _loadWeightAndHeight() async {
+  if (FirebaseAuth.instance.currentUser != null) {
+    String userId = FirebaseAuth.instance.currentUser!.uid;
+
+    DocumentSnapshot userDoc = await FirebaseFirestore.instance
+      .collection('users')
+      .doc(userId)
+      .get();
+
+    if(userDoc.exists) {
+      setState(() {
+        _weight = userDoc['weight']?.toString() ?? 'Nicht gesetzt';
+        _height = userDoc['height']?.toString() ?? 'Nicht gesetzt';
+      });
+    }
+  }
+}
 
   //Öffnet Dialog, wo Benutzer Größe & Gewicht eingibt
   void _showEditDialog() {
@@ -87,7 +103,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
             //Speichern Button
             TextButton(
               onPressed: () async {
-                await _saveProfilData();
+                await _saveWeightAndHeight(
+                  _weightController.text,
+                  _heightController.text,
+                );
+                await _loadWeightAndHeight();
                 Navigator.pop(context);
               },
               child: const Text('Speichern')
