@@ -1,4 +1,6 @@
-// ignore_for_file: library_private_types_in_public_api, prefer_final_fields
+///Hauptbildschirm der App mit
+///der Anzeige der täglichen
+///Schritte und der Navigation
 
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -17,110 +19,119 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-
   //Variablen
-  int _counter = 0;
-  int _dailyGoal = 10000;
+  int _counter = 0; //manuelle Schritte
+  int _dailyGoal = 10000; //Schritt-Zeil
   bool _isUserLoggedIn = false;
-  int _sensorSteps = 0;
+  int _sensorSteps = 0; //Sensor Schritte
 
-  @override initState() {
+  @override
+  initState() {
     super.initState();
     _loadStepsFromFirestore();
     _initStepCounter();
     _checkUserStatus();
   }
 
-void _loadStepsFromFirestore() async {
-  if(FirebaseAuth.instance.currentUser != null) {
-    String userId = FirebaseAuth.instance.currentUser!.uid;
+//Lädt die Schritte von Firestore
+  void _loadStepsFromFirestore() async {
+    if (FirebaseAuth.instance.currentUser != null) {
+      String userId = FirebaseAuth.instance.currentUser!.uid;
 
-    DocumentReference userDoc = FirebaseFirestore.instance.collection('users').doc(userId);
+      DocumentReference userDoc =
+          FirebaseFirestore.instance.collection('users').doc(userId);
 
-    DateTime now = DateTime.now();
-    String today = '${now.year}-${now.month}-${now.day}';
+      DateTime now = DateTime.now();
+      String today = '${now.year}-${now.month}-${now.day}';
 
-    try {
-      DocumentSnapshot docSnapshot = await userDoc.get();
-      List<dynamic> stepsList = docSnapshot.exists ? (docSnapshot['steps'] ?? []) : [];
-      bool isNewDay = true;
+      try {
+        DocumentSnapshot docSnapshot = await userDoc.get();
+        List<dynamic> stepsList =
+            docSnapshot.exists ? (docSnapshot['steps'] ?? []) : [];
+        bool isNewDay = true;
 
-      for (var stepEntry in stepsList) {
-        if (stepEntry['date'] == today) {
+        for (var stepEntry in stepsList) {
+          if (stepEntry['date'] == today) {
+            setState(() {
+              _counter = stepEntry['stepCount'];
+            });
+            isNewDay = false;
+            break;
+          }
+        }
+        if (isNewDay) {
           setState(() {
-            _counter = stepEntry['stepCount'];
+            _counter = 0;
+            _sensorSteps = 0;
           });
-          isNewDay = false;
-          break;
+          _saveStepsToFirestore();
         }
+      } catch (e) {
+        print('Fehler beim Laden der Schritte: $e');
       }
-    if (isNewDay) {
-      setState(() {
-        _counter = 0;
-        _sensorSteps = 0;
-      });
-      _saveStepsToFirestore();
-    }
-    } catch(e) {
-      print('Fehler beim Laden der Schritte: $e');
     }
   }
-}
 
-void _saveStepsToFirestore() async {
-  if (FirebaseAuth.instance.currentUser != null) {
-    String userId = FirebaseAuth.instance.currentUser!.uid;
+//Speichert die Schritte auf Firestore
+  void _saveStepsToFirestore() async {
+    if (FirebaseAuth.instance.currentUser != null) {
+      String userId = FirebaseAuth.instance.currentUser!.uid;
 
-    
-    DocumentReference userDoc = FirebaseFirestore.instance.collection('users').doc(userId);
-    DateTime now = DateTime.now();
-    String today = '${now.year}-${now.month}-${now.day}'; 
+      DocumentReference userDoc =
+          FirebaseFirestore.instance.collection('users').doc(userId);
+      DateTime now = DateTime.now();
+      String today = '${now.year}-${now.month}-${now.day}';
 
-    try {
-      
-      DocumentSnapshot docSnapshot = await userDoc.get();
-      List<dynamic> stepsList = docSnapshot.exists ? (docSnapshot['steps'] ?? []) : [];
+      try {
+        DocumentSnapshot docSnapshot = await userDoc.get();
+        List<dynamic> stepsList =
+            docSnapshot.exists ? (docSnapshot['steps'] ?? []) : [];
 
-      bool found = false;
+        bool found = false;
 
-      
-      for (var stepEntry in stepsList) {
-        if (stepEntry['date'] == today) {
-          stepEntry['stepCount'] = (_counter + _sensorSteps);
-          found = true;
-          break;
+        for (var stepEntry in stepsList) {
+          if (stepEntry['date'] == today) {
+            stepEntry['stepCount'] = (_counter + _sensorSteps);
+            found = true;
+            break;
+          }
         }
-      }
 
-      if (!found) {
-        stepsList.add({
-          'date': today,
-          'stepCount': _counter + _sensorSteps,
-        });
-      }
+        if (!found) {
+          stepsList.add({
+            'date': today,
+            'stepCount': _counter + _sensorSteps,
+          });
+        }
 
-      
-      await userDoc.set({'steps': stepsList}, SetOptions(merge: true));
-    } catch (e) {
-      print('Fehler beim Speichern der Schritte: $e');
+        await userDoc.set({'steps': stepsList}, SetOptions(merge: true));
+      } catch (e) {
+        print('Fehler beim Speichern der Schritte: $e');
+      }
     }
   }
-}
-  
+
   //Stream für Schrittzähler
   late Stream<StepCount> _stepCountStream;
 
+  //um die auf dem Gerät gespeicherten Schritte zu übergehen
+  int _zeroSteps = 0;
+
+  //Initialisiert Schrittzähler
   void _initStepCounter() {
     _stepCountStream = Pedometer.stepCountStream;
-    
+
     _stepCountStream.listen(
-    (StepCount event) {
-      setState(() {
-        _sensorSteps = event.steps;
-        _saveStepsToFirestore();
-      });
-    },
-  );
+      (StepCount event) {
+        setState(() {
+          if (_zeroSteps == 0) {
+            _zeroSteps = event.steps;
+          }
+          _sensorSteps = event.steps - _zeroSteps;
+          _saveStepsToFirestore();
+        });
+      },
+    );
   }
 
   //Erhöhen der Schritte (manuell)
@@ -144,8 +155,9 @@ void _saveStepsToFirestore() async {
   }
 
   Future<bool> _logoutConfirmation(BuildContext context) async {
-    return await showDialog(context: context,
-          builder: (BuildContext context){
+    return await showDialog(
+          context: context,
+          builder: (BuildContext context) {
             return AlertDialog(
               title: const Text("Abmelden"),
               content: const Text("Möchten Sie sich wirklich Abmelden?"),
@@ -165,8 +177,8 @@ void _saveStepsToFirestore() async {
               ],
             );
           },
-    ) ??
-    false;
+        ) ??
+        false;
   }
 
   @override
@@ -177,27 +189,26 @@ void _saveStepsToFirestore() async {
 
   @override
   Widget build(BuildContext context) {
-
     //Benutzeroberfläche Home Screen
     return Scaffold(
       appBar: AppBar(
         title: const Text('Schrittzähler'),
         actions: [
-          if(_isUserLoggedIn)
+          if (_isUserLoggedIn)
             Tooltip(
               message: 'Abmelden',
               child: IconButton(
                 icon: const Icon(Icons.exit_to_app),
-                onPressed: () async{
+                onPressed: () async {
                   final confirmLogout = await _logoutConfirmation(context);
                   if (confirmLogout) {
-                  await FirebaseAuth.instance.signOut();
-                  _checkUserStatus();
+                    await FirebaseAuth.instance.signOut();
+                    _checkUserStatus();
                   }
-              },
+                },
               ),
             ),
-          if(!_isUserLoggedIn)
+          if (!_isUserLoggedIn)
             IconButton(
               icon: const Icon(Icons.login),
               onPressed: () {
@@ -215,7 +226,6 @@ void _saveStepsToFirestore() async {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-
             const Text('Deine Schrittzahl heute:'),
             const SizedBox(height: 20),
 
@@ -223,7 +233,6 @@ void _saveStepsToFirestore() async {
             Stack(
               alignment: Alignment.center,
               children: [
-
                 //Fortschrissbalken bzw. Kreis
                 SizedBox(
                   height: 200,
@@ -231,7 +240,8 @@ void _saveStepsToFirestore() async {
                   child: CircularProgressIndicator(
                     value: getProgess(),
                     backgroundColor: Colors.grey.shade300,
-                    valueColor: const AlwaysStoppedAnimation<Color>(Colors.deepPurple),
+                    valueColor:
+                        const AlwaysStoppedAnimation<Color>(Colors.deepPurple),
                     strokeWidth: 15,
                   ),
                 ),
@@ -240,9 +250,9 @@ void _saveStepsToFirestore() async {
                 Text(
                   '${_counter + (_sensorSteps)} Schritte',
                   style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    color: Colors.deepPurple,
-                    fontWeight: FontWeight.bold,
-                  ),
+                        color: Colors.deepPurple,
+                        fontWeight: FontWeight.bold,
+                      ),
                 ),
               ],
             ),
@@ -250,7 +260,7 @@ void _saveStepsToFirestore() async {
 
             //Fortschrittsanzeige in Prozent
             Text(
-              '${((_counter + _sensorSteps )/ _dailyGoal * 100).toStringAsFixed(1)} % des Ziels erreicht.',
+              '${((_counter + _sensorSteps) / _dailyGoal * 100).toStringAsFixed(1)} % des Ziels erreicht.',
               style: const TextStyle(fontSize: 18, color: Colors.deepPurple),
             ),
           ],
@@ -267,40 +277,53 @@ void _saveStepsToFirestore() async {
       //Navigationsbar (Profil, Statistik, Einstellungen)
       bottomNavigationBar: BottomNavigationBar(
         items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.person_outline), label: 'Profil'),
-          BottomNavigationBarItem(icon: Icon(Icons.insert_chart), label: 'Statistik'),
-          BottomNavigationBarItem(icon: Icon(Icons.settings), label: 'Einstellungen'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.person_outline), label: 'Profil'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.insert_chart), label: 'Statistik'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.settings), label: 'Einstellungen'),
         ],
         onTap: (index) {
-          if(_isUserLoggedIn) {
-          if (index == 0) {
-            Navigator.push(context, MaterialPageRoute(builder: (context) => const ProfileScreen()));
-          } else if (index == 1) {
-            Navigator.push(context, MaterialPageRoute(builder: (context) => const StatisticsScreen()));
-          } else if (index == 2) {
-            Navigator.push(context, MaterialPageRoute(builder: (context) => const SettingsScreen()));
+          if (_isUserLoggedIn) {
+            if (index == 0) {
+              Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) => const ProfileScreen()));
+            } else if (index == 1) {
+              Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) => const StatisticsScreen()));
+            } else if (index == 2) {
+              Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) => const SettingsScreen()));
+            }
+          } else {
+            showDialog(
+              context: context,
+              builder: (BuildContext context) {
+                return AlertDialog(
+                  title: const Text("Bitte Anmelden"),
+                  content: const Text(
+                      "Um auf diese Funktion zuzugreifen, bitte anmelden"),
+                  actions: <Widget>[
+                    TextButton(
+                      onPressed: () {
+                        Navigator.pop(context);
+                      },
+                      child: const Text("Ok"),
+                    ),
+                  ],
+                );
+              },
+            );
           }
-        } else {
-          showDialog(
-            context: context,
-            builder:(BuildContext context) {
-              return AlertDialog(
-                title: const Text("Bitte Anmelden"),
-                content: const Text("Um auf diese Funktion zuzugreifen, bitte anmelden"),
-                actions: <Widget>[
-                  TextButton (
-                    onPressed: () {
-                      Navigator.pop(context);
-                    },
-                    child: const Text("Ok"),
-                  ),
-                ],
-              );
-            },
-          );
-        }
-      },
-    ),
-  );
-}
+        },
+      ),
+    );
+  }
 }

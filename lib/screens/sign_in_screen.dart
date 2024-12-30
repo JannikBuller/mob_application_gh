@@ -1,3 +1,5 @@
+///Bildschirm für die Anmeldung und Registrierung
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'home_screen.dart';
@@ -19,11 +21,13 @@ class _SignInScreenState extends State<SignInScreen> {
   bool _isRegistering = false;
   String _errorMessage = '';
 
+  //Speichert Benutzernamen
   Future<void> _saveUserName(String name) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('userName', name);
   }
 
+  //Methode zur Anmeldug
   Future<void> _signInWithEmailPassword() async {
     setState(() {
       _isLoading = true;
@@ -31,27 +35,27 @@ class _SignInScreenState extends State<SignInScreen> {
     });
 
     try {
-      final UserCredential userCredential = await _auth.signInWithEmailAndPassword(
-        email: _emailController.text.trim(), 
-        password: _passwordController.text.trim()
-        );
+      final UserCredential userCredential =
+          await _auth.signInWithEmailAndPassword(
+              email: _emailController.text.trim(),
+              password: _passwordController.text.trim());
 
-        final user = userCredential.user;
-        final displayName = _nameController.text.trim().isNotEmpty
-          ? _nameController.text.trim() : user?.email?.split('@') [0] ?? 'Gast';
+      final user = userCredential.user;
+      final displayName = _nameController.text.trim().isNotEmpty
+          ? _nameController.text.trim()
+          : user?.email?.split('@')[0] ?? 'Gast';
 
-        await _saveUserName(displayName);
+      await _saveUserName(displayName);
 
-        print ('Erfolgreich angemeldet: ${userCredential.user?.email}');
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const HomeScreen()),
-        );
-
+      print('Erfolgreich angemeldet: ${userCredential.user?.email}');
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const HomeScreen()),
+      );
     } catch (e) {
       print('Fehler bei Anmeldung: $e');
       showDialog(
-        context: context, 
+        context: context,
         builder: (context) => AlertDialog(
           title: Text('Fehler'),
           content: Text('Fehler bei der Anmeldung: $e'),
@@ -64,7 +68,7 @@ class _SignInScreenState extends State<SignInScreen> {
             ),
           ],
         ),
-        );
+      );
     } finally {
       setState(() {
         _isLoading = false;
@@ -72,6 +76,7 @@ class _SignInScreenState extends State<SignInScreen> {
     }
   }
 
+  //Methode zur Registrierung
   Future<void> _registerWithEmailPassword() async {
     setState(() {
       _isLoading = true;
@@ -79,22 +84,22 @@ class _SignInScreenState extends State<SignInScreen> {
     });
 
     try {
-      final UserCredential userCredential = await _auth.createUserWithEmailAndPassword(
+      final UserCredential userCredential =
+          await _auth.createUserWithEmailAndPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
-        );
+      );
 
-        final user = userCredential.user;
-        final displayName = user?.email?.split('@') [0] ?? 'Gast';
+      final user = userCredential.user;
+      final displayName = user?.email?.split('@')[0] ?? 'Gast';
 
-        await _saveUserName(displayName);
+      await _saveUserName(displayName);
 
-        print('Erfolgreich registriert: ${userCredential.user?.email}');
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const HomeScreen()),
-        );
-    
+      print('Erfolgreich registriert: ${userCredential.user?.email}');
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const HomeScreen()),
+      );
     } catch (e) {
       setState(() {
         _errorMessage = 'Fehler bei der Registrierung: ${e.toString()}';
@@ -105,20 +110,21 @@ class _SignInScreenState extends State<SignInScreen> {
       });
     }
   }
-  
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Anmelden oder Registrieren"),
-      leading: IconButton(
-        icon: const Icon(Icons.arrow_back),
-        onPressed: () {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => const HomeScreen()),
-          );
-        },
-      ),
+      appBar: AppBar(
+        title: const Text("Anmelden oder Registrieren"),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => const HomeScreen()),
+            );
+          },
+        ),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -136,40 +142,37 @@ class _SignInScreenState extends State<SignInScreen> {
               decoration: const InputDecoration(labelText: 'Passwort'),
               obscureText: true,
             ),
-
             const SizedBox(height: 20),
-
-            if(_errorMessage.isNotEmpty)
-            Text(
-              _errorMessage,
-              style: const TextStyle(color: Colors.red),
-            ),
-
-            if(_isLoading)
-              const CircularProgressIndicator()
-            else...[
-            ElevatedButton(
-              onPressed: _isRegistering
-                ? _registerWithEmailPassword
-                : _signInWithEmailPassword,
-              child: Text(_isRegistering ? 'Registrierung' : 'Anmelden'),
-            ),
-            TextButton(
-              onPressed: () {
-                setState(() {
-                  _isRegistering = !_isRegistering;
-                });
-              },
-              child: Text(
-                _isRegistering
-                  ? 'Bereits registriert ? Hier anmelden'
-                  : 'Noch keinen Account ? Hier registrieren',
+            if (_errorMessage.isNotEmpty)
+              Text(
+                _errorMessage,
+                style: const TextStyle(color: Colors.red),
               ),
-            ),
+            if (_isLoading)
+              const CircularProgressIndicator()
+            else ...[
+              ElevatedButton(
+                onPressed: _isRegistering
+                    ? _registerWithEmailPassword
+                    : _signInWithEmailPassword,
+                child: Text(_isRegistering ? 'Registrierung' : 'Anmelden'),
+              ),
+              TextButton(
+                onPressed: () {
+                  setState(() {
+                    _isRegistering = !_isRegistering;
+                  });
+                },
+                child: Text(
+                  _isRegistering
+                      ? 'Bereits registriert ? Hier anmelden'
+                      : 'Noch keinen Account ? Hier registrieren',
+                ),
+              ),
+            ],
           ],
-        ],
+        ),
       ),
-    ),
-  );
+    );
   }
 }
